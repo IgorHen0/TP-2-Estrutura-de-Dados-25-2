@@ -15,7 +15,6 @@ enum class EstadoDemanda {
     CONCLUIDA
 };
 
-
 class Demanda {
 private:
     int id;

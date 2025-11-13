@@ -19,7 +19,7 @@ Trecho::Trecho(Parada* p1, Parada* p2, double velocidadeVeiculo) :
     // Calcula o tempo (tempo = distancia / velocidade)
     this->tempo = this->distancia / velocidadeVeiculo;
 
-    // 3. Determina o tipo do trecho
+    // Determina o tipo do trecho
     this->tipo = Trecho::determinaTipo(p1, p2);
 }
 
