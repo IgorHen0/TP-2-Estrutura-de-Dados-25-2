@@ -1,29 +1,23 @@
 # Variáveis
-CC = gcc
-CFLAGS = -g -Wall -Wextra -Iinclude
+CXX = g++
+CXXFLAGS = -g -Wall -Wextra -Iinclude -std=c++11
 SRCDIR = src
 OBJDIR = obj
 BINDIR = bin
-EXEC = $(BINDIR)/tp2.out
+EXEC = $(BINDIR)/tp2.out 
 
-# Obtém todos os arquivos .c em src
-SRC = $(wildcard $(SRCDIR)/*.c)
-# Converte os arquivos .c para .o, mas salva em obj
-OBJ = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRC))
+SRC = $(wildcard $(SRCDIR)/*.cpp)
+OBJ = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
 
-# Alvo padrão
 all: $(EXEC)
 
-# Cria o executável a partir dos objetos
 $(EXEC): $(OBJ)
 	mkdir -p $(BINDIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Compila cada arquivo .c para .o
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Limpeza
 clean:
 	rm -rf $(OBJDIR)/*.o $(BINDIR)/tp2.out
