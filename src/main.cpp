@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
@@ -11,6 +10,7 @@
 #include "../include/parada.hpp"
 #include "../include/trecho.hpp"
 #include "../include/corrida.hpp"
+
 struct Parametros {
     int eta;
     double gama;
@@ -202,21 +202,7 @@ void limpaMemoria(Vetor* listaDemandas, Vetor* listaCorridas) {
 }
 
 
-int main(int argc, char* argv[]) {
-    
-    if (argc < 2) {
-        std::cerr << "Erro: Nenhum arquivo de entrada foi fornecido." << std::endl;
-        std::cerr << "Uso: ./tp2.out <caminho_para_o_arquivo_de_entrada>" << std::endl;
-        return 1;
-    }
-
-    // Abertura do Arquivo
-    std::string nomeArquivo = argv[1];
-    std::ifstream arquivoEntrada(nomeArquivo.c_str());
-    if (!arquivoEntrada.is_open()) {
-        std::cerr << "Erro: Nao foi possivel abrir o arquivo: " << nomeArquivo << std::endl;
-        return 1;
-    }
+int main() {
 
     // Inicialização dos TADs
     Parametros params;
@@ -224,25 +210,24 @@ int main(int argc, char* argv[]) {
     Vetor* listaCorridas = new Vetor();
     Escalonador* escalonador = new Escalonador();
 
-    // Leitura dos Parâmetros
-    arquivoEntrada >> params.eta >> params.gama >> params.delta 
-                   >> params.alfa >> params.beta >> params.lambda;
+    // Leitura dos Parâmetros via std::cin
+    std::cin >> params.eta >> params.gama >> params.delta 
+             >> params.alfa >> params.beta >> params.lambda;
 
-    // Leitura das Demandas
+    // Leitura das Demandas via std::cin
     int numDemandas;
-    arquivoEntrada >> numDemandas;
+    std::cin >> numDemandas;
     for (int i = 0; i < numDemandas; i++) {
         int id;
         double tempo;
         Ponto origem, destino;
-        arquivoEntrada >> id >> tempo
-                       >> origem.x >> origem.y
-                       >> destino.x >> destino.y;
+        std::cin >> id >> tempo
+                 >> origem.x >> origem.y
+                 >> destino.x >> destino.y;
         
         Demanda* novaDemanda = new Demanda(id, tempo, origem, destino);
         listaDemandas->insereNoFim((void*) novaDemanda);
     }
-    arquivoEntrada.close();
 
     // Execução das Fases
     agrupaCorridas(listaDemandas, listaCorridas, escalonador, params);
