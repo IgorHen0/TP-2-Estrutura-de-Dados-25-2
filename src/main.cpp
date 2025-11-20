@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
+#include <stdexcept>
 
 #include "../include/vetor.hpp"
 #include "../include/escalonador.hpp"
@@ -19,6 +20,7 @@ struct Parametros {
     double beta;
     double lambda;
 };
+
 struct Evento {
     Corrida* corrida;
     int indiceTrecho;
@@ -52,24 +54,14 @@ void gerarEstatisticas(Corrida* corrida, double tempoConclusao) {
     std::cout << " " << pFinal.x << " " << pFinal.y;
 
     std::cout << std::endl;
-
-    if (corrida->getNumPassageiros() > 0) {
-        Demanda* d_base = (Demanda*) corrida->getListaDemandas()->pegaElemento(0);
-        
-        // Configura o std::cerr com 4 casas decimais para a eficiência
-        std::cerr << std::fixed << std::setprecision(4);
-        std::cerr << "ANALISE: "
-                  << d_base->getId()
-                  << " " << corrida->getEficiencia()
-                  << " " << corrida->getNumPassageiros()
-                  << std::endl;
-    }
 }
 
 void agrupaCorridas(Vetor* listaDemandas, Vetor* listaCorridas, Escalonador* escalonador, const Parametros& params) {
     
     for (int i = 0; i < listaDemandas->getTamanho(); i++) {
         Demanda* demandaAtual = (Demanda*) listaDemandas->pegaElemento(i);
+
+        if (!demandaAtual) continue;
 
         // Se a demanda já foi combinada, pula para a próxima
         if (demandaAtual->getEstado() != EstadoDemanda::DEMANDADA) {
@@ -81,9 +73,11 @@ void agrupaCorridas(Vetor* listaDemandas, Vetor* listaCorridas, Escalonador* esc
         novaCorrida->adicionarDemanda(demandaAtual);
         demandaAtual->setEstado(EstadoDemanda::INDIVIDUAL);
         
-        // Tenta adicionar mais passageiros (loop de combinação)
+        // Tenta adicionar mais passageiros
         for (int j = i + 1; j < listaDemandas->getTamanho(); j++) {
             Demanda* demandaCandidata = (Demanda*) listaDemandas->pegaElemento(j);
+            
+            if (!demandaCandidata) continue;
 
             // Critério de Capacidade (eta)
             if (novaCorrida->getNumPassageiros() >= params.eta) {
@@ -170,6 +164,8 @@ void executaSimulacao(Escalonador* escalonador) {
         // Retira o próximo evento (o de menor tempo)
         Evento* eventoAtual = (Evento*) escalonador->retiraProximoEvento();
         
+        if (!eventoAtual) continue;
+
         double tempoAtual = eventoAtual->tempoChegada;
         Corrida* corrida = eventoAtual->corrida;
         int indiceTrechoAtual = eventoAtual->indiceTrecho;
@@ -182,14 +178,16 @@ void executaSimulacao(Escalonador* escalonador) {
             int proximoIndice = indiceTrechoAtual + 1;
             Trecho* proximoTrecho = (Trecho*) trechosDaCorrida->pegaElemento(proximoIndice);
             
-            double proximoTempoChegada = tempoAtual + proximoTrecho->getTempo();
+            if (proximoTrecho) {
+                double proximoTempoChegada = tempoAtual + proximoTrecho->getTempo();
 
-            Evento* proximoEvento = new Evento();
-            proximoEvento->corrida = corrida;
-            proximoEvento->indiceTrecho = proximoIndice;
-            proximoEvento->tempoChegada = proximoTempoChegada;
+                Evento* proximoEvento = new Evento();
+                proximoEvento->corrida = corrida;
+                proximoEvento->indiceTrecho = proximoIndice;
+                proximoEvento->tempoChegada = proximoTempoChegada;
 
-            escalonador->insereEvento(proximoTempoChegada, (void*) proximoEvento);
+                escalonador->insereEvento(proximoTempoChegada, (void*) proximoEvento);
+            }
         }
 
         // Libera o evento atual da memória
@@ -198,56 +196,78 @@ void executaSimulacao(Escalonador* escalonador) {
 }
 
 void limpaMemoria(Vetor* listaDemandas, Vetor* listaCorridas) {
-    // Libera cada objeto Demanda
-    for (int i = 0; i < listaDemandas->getTamanho(); i++) {
-        delete (Demanda*) listaDemandas->pegaElemento(i);
+    if (listaDemandas) {
+        for (int i = 0; i < listaDemandas->getTamanho(); i++) {
+            Demanda* d = (Demanda*) listaDemandas->pegaElemento(i);
+            if (d) delete d;
+        }
+        delete listaDemandas;
     }
-    // Libera o vetor de demandas
-    delete listaDemandas;
 
-    // Libera cada objeto Corrida
-    for (int i = 0; i < listaCorridas->getTamanho(); i++) {
-        delete (Corrida*) listaCorridas->pegaElemento(i);
+    if (listaCorridas) {
+        for (int i = 0; i < listaCorridas->getTamanho(); i++) {
+            Corrida* c = (Corrida*) listaCorridas->pegaElemento(i);
+            if (c) delete c;
+        }
+        delete listaCorridas;
     }
-    // Libera o vetor de corridas
-    delete listaCorridas;
 }
 
-
 int main() {
-
     // Inicialização dos TADs
     Parametros params;
-    Vetor* listaDemandas = new Vetor();
-    Vetor* listaCorridas = new Vetor();
-    Escalonador* escalonador = new Escalonador();
+    Vetor* listaDemandas = nullptr;
+    Vetor* listaCorridas = nullptr;
+    Escalonador* escalonador = nullptr;
 
-    // Leitura dos Parâmetros via std::cin
-    std::cin >> params.eta >> params.gama >> params.delta 
-             >> params.alfa >> params.beta >> params.lambda;
+    try {
+        listaDemandas = new Vetor();
+        listaCorridas = new Vetor();
+        escalonador = new Escalonador();
 
-    // Leitura das Demandas via std::cin
-    int numDemandas;
-    std::cin >> numDemandas;
-    for (int i = 0; i < numDemandas; i++) {
-        int id;
-        double tempo;
-        Ponto origem, destino;
-        std::cin >> id >> tempo
-                 >> origem.x >> origem.y
-                 >> destino.x >> destino.y;
+        // Leitura dos Parâmetros e Validação de Entrada
+        if (!(std::cin >> params.eta >> params.gama >> params.delta 
+                      >> params.alfa >> params.beta >> params.lambda)) {
+            throw std::runtime_error("Falha na leitura dos parâmetros de entrada.");
+        }
+
+        // Leitura das Demandas
+        int numDemandas;
+        if (!(std::cin >> numDemandas)) {
+            throw std::runtime_error("Falha na leitura do número de demandas.");
+        }
+
+        for (int i = 0; i < numDemandas; i++) {
+            int id;
+            double tempo;
+            Ponto origem, destino;
+            
+            if (!(std::cin >> id >> tempo >> origem.x >> origem.y >> destino.x >> destino.y)) {
+                 throw std::runtime_error("Erro de formatação ou fim de arquivo inesperado ao ler demandas.");
+            }
+            
+            Demanda* novaDemanda = new Demanda(id, tempo, origem, destino);
+            listaDemandas->insereNoFim((void*) novaDemanda);
+        }
+
+        // Execução das Fases
+        agrupaCorridas(listaDemandas, listaCorridas, escalonador, params);
+        executaSimulacao(escalonador);
+
+    } catch (const std::exception& e) {
+        // Tratamento de erro robusto: imprime no stderr e limpa o que for possível
+        std::cerr << "Erro durante a execução: " << e.what() << std::endl;
         
-        Demanda* novaDemanda = new Demanda(id, tempo, origem, destino);
-        listaDemandas->insereNoFim((void*) novaDemanda);
+        // Limpeza de Memória em caso de erro
+        limpaMemoria(listaDemandas, listaCorridas);
+        if (escalonador) delete escalonador;
+        
+        return EXIT_FAILURE;
     }
-
-    // Execução das Fases
-    agrupaCorridas(listaDemandas, listaCorridas, escalonador, params);
-    executaSimulacao(escalonador);
 
     // Limpeza de Memória
     limpaMemoria(listaDemandas, listaCorridas);
-    delete escalonador;
+    if (escalonador) delete escalonador;
 
     return 0;
 }
