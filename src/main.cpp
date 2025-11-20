@@ -52,6 +52,18 @@ void gerarEstatisticas(Corrida* corrida, double tempoConclusao) {
     std::cout << " " << pFinal.x << " " << pFinal.y;
 
     std::cout << std::endl;
+
+    if (corrida->getNumPassageiros() > 0) {
+        Demanda* d_base = (Demanda*) corrida->getListaDemandas()->pegaElemento(0);
+        
+        // Configura o std::cerr com 4 casas decimais para a eficiência
+        std::cerr << std::fixed << std::setprecision(4);
+        std::cerr << "ANALISE: "
+                  << d_base->getId()
+                  << " " << corrida->getEficiencia()
+                  << " " << corrida->getNumPassageiros()
+                  << std::endl;
+    }
 }
 
 void agrupaCorridas(Vetor* listaDemandas, Vetor* listaCorridas, Escalonador* escalonador, const Parametros& params) {
